@@ -128,19 +128,27 @@ async function loadAnalysisResults() {
         const q3 = analysisData.question_3;
         document.getElementById('question-3-answer').innerHTML = q3.answer;
 
-        // Таблица категорий
-        const categoriesHTML = `
-            <h4>🏆 Топ-10 категорий по количеству игр</h4>
-            <ul class="category-list">
-                ${Object.entries(q3.top_by_count)
-            .map(([cat, count]) => `
-                        <li class="category-item">
-                            <span class="category-name">${cat}</span>
-                            <span class="category-count">${count} игр</span>
-                        </li>
-                    `).join('')}
-            </ul>
-        `;
+        // Таблица категорий - ИСПРАВЛЕНО
+        let categoriesHTML = '<h4>🏆 Топ-10 по количеству</h4><ul class="category-list">';
+
+        // Проверяем формат данных
+        if (q3.top_by_count) {
+            const topItems = q3.top_by_count;
+
+            // Если это объект, конвертируем в массив
+            const entries = typeof topItems === 'object' ? Object.entries(topItems) : [];
+
+            entries.slice(0, 10).forEach(([key, value]) => {
+                categoriesHTML += `
+                    <li class="category-item">
+                        <span class="category-name">${key}</span>
+                        <span class="category-count">${value}</span>
+                    </li>
+                `;
+            });
+        }
+
+        categoriesHTML += '</ul>';
         document.getElementById('question-3-categories').innerHTML = categoriesHTML;
 
         console.log('✅ Результаты анализа загружены');
@@ -388,29 +396,54 @@ async function handlePrediction() {
 function displayPredictionResult(result) {
     const resultContainer = document.getElementById('prediction-result');
 
+    // Проверка наличия данных
+    if (!result || !result.predicted_rating) {
+        console.error('Некорректные данные результата:', result);
+        alert('Ошибка: получены некорректные данные от сервера');
+        return;
+    }
+
     // Заполнение данных
     document.getElementById('predicted-rating-value').textContent =
         result.predicted_rating.toFixed(2);
 
     document.getElementById('confidence-lower').textContent =
-        result.confidence_interval.lower.toFixed(2);
+        result.confidence_interval?.lower?.toFixed(2) || '-';
 
     document.getElementById('confidence-upper').textContent =
-        result.confidence_interval.upper.toFixed(2);
+        result.confidence_interval?.upper?.toFixed(2) || '-';
 
     document.getElementById('interpretation-text').textContent =
-        result.interpretation;
+        result.interpretation || 'Нет интерпретации';
+
+    // НОВОЕ: Отображение confidence
+    const confidenceValue = result.prediction_confidence || 50.0;
+    const confidenceBar = document.getElementById('confidence-bar');
+    const confidenceText = document.getElementById('confidence-value');
+    const confidenceDesc = document.getElementById('confidence-description');
+
+    if (confidenceBar && confidenceText && confidenceDesc) {
+        // Анимация прогресс-бара
+        setTimeout(() => {
+            confidenceBar.style.width = `${confidenceValue}%`;
+        }, 100);
+
+        confidenceText.textContent = `${confidenceValue.toFixed(1)}%`;
+        confidenceDesc.textContent = result.confidence_interpretation || 'Нет описания';
+    }
 
     // Показываем результат с анимацией
-    resultContainer.style.display = 'block';
-    resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (resultContainer) {
+        resultContainer.style.display = 'block';
+        resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    // Анимация появления
-    resultContainer.style.opacity = '0';
-    setTimeout(() => {
-        resultContainer.style.transition = 'opacity 0.5s ease';
-        resultContainer.style.opacity = '1';
-    }, 100);
+        // Анимация появления
+        resultContainer.style.opacity = '0';
+        setTimeout(() => {
+            resultContainer.style.transition = 'opacity 0.5s ease';
+            resultContainer.style.opacity = '1';
+        }, 100);
+    }
 }
 
 /**

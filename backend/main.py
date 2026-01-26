@@ -16,6 +16,102 @@ import json
 from pathlib import Path
 import base64
 
+
+# Функция расчета уверенности (встроенная)
+def calculate_prediction_confidence(game_data: Dict) -> float:
+    """Расчет процента уверенности в предсказании"""
+    confidence_factors = []
+
+    # 1. Количество оценок (0-25%)
+    users_rated = game_data.get('usersrated', 0)
+    if users_rated >= 5000:
+        users_confidence = 25.0
+    elif users_rated >= 1000:
+        users_confidence = 20.0
+    elif users_rated >= 500:
+        users_confidence = 15.0
+    elif users_rated >= 100:
+        users_confidence = 10.0
+    else:
+        users_confidence = 5.0
+    confidence_factors.append(users_confidence)
+
+    # 2. Типичность года (0-20%)
+    year = game_data.get('yearpublished', 2000)
+    if 2010 <= year <= 2020:
+        year_confidence = 20.0
+    elif 2000 <= year <= 2025:
+        year_confidence = 15.0
+    elif 1990 <= year <= 2000:
+        year_confidence = 12.0
+    else:
+        year_confidence = 8.0
+    confidence_factors.append(year_confidence)
+
+    # 3. Типичность времени игры (0-15%)
+    playtime = game_data.get('playingtime', 60)
+    if 30 <= playtime <= 120:
+        time_confidence = 15.0
+    elif 15 <= playtime <= 180:
+        time_confidence = 10.0
+    else:
+        time_confidence = 5.0
+    confidence_factors.append(time_confidence)
+
+    # 4. Типичность количества игроков (0-15%)
+    min_players = game_data.get('minplayers', 2)
+    max_players = game_data.get('maxplayers', 4)
+    if 2 <= min_players <= 4 and 2 <= max_players <= 6:
+        players_confidence = 15.0
+    elif 1 <= min_players <= 6 and 2 <= max_players <= 10:
+        players_confidence = 10.0
+    else:
+        players_confidence = 5.0
+    confidence_factors.append(players_confidence)
+
+    # 5. Наличие категорий и механик (0-15%)
+    num_categories = len(game_data.get('categories', []))
+    num_mechanics = len(game_data.get('mechanics', []))
+
+    if num_categories >= 2 and num_mechanics >= 2:
+        features_confidence = 15.0
+    elif num_categories >= 1 and num_mechanics >= 1:
+        features_confidence = 10.0
+    elif num_categories >= 1 or num_mechanics >= 1:
+        features_confidence = 5.0
+    else:
+        features_confidence = 0.0
+    confidence_factors.append(features_confidence)
+
+    # 6. Разумность сложности (0-10%)
+    weight = game_data.get('averageweight', 2.5)
+    if 1.0 <= weight <= 4.0:
+        weight_confidence = 10.0
+    elif 0.5 <= weight <= 5.0:
+        weight_confidence = 5.0
+    else:
+        weight_confidence = 2.0
+    confidence_factors.append(weight_confidence)
+
+    total_confidence = sum(confidence_factors)
+    total_confidence = max(30.0, min(95.0, total_confidence))
+
+    return round(total_confidence, 1)
+
+
+def interpret_confidence(confidence: float) -> str:
+    """Интерпретация уровня уверенности"""
+    if confidence >= 85:
+        return "Очень высокая уверенность - данные типичны для обучающей выборки"
+    elif confidence >= 70:
+        return "Высокая уверенность - хорошие данные для предсказания"
+    elif confidence >= 55:
+        return "Средняя уверенность - предсказание может отличаться от реальности"
+    elif confidence >= 40:
+        return "Низкая уверенность - данные нетипичны"
+    else:
+        return "Очень низкая уверенность - предсказание ненадежно"
+
 # Инициализация FastAPI
 app = FastAPI(
     title="BoardGame Rating Predictor API",
@@ -153,6 +249,11 @@ async def get_main_page():
         html_content = f.read()
 
     return HTMLResponse(content=html_content)
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse("frontend/favicon.ico")
 
 
 @app.get("/api/analysis")
