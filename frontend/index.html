@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
 </head>
 <body>
 <!-- Навигация -->
@@ -294,16 +293,31 @@
             <div class="prediction-result" id="prediction-result" style="display: none;">
                 <div class="result-card">
                     <h3>Результат прогноза</h3>
+
                     <div class="predicted-rating">
                         <div class="rating-value" id="predicted-rating-value">-</div>
                         <div class="rating-label">Предсказанный рейтинг</div>
                     </div>
+
+                    <!-- Процент уверенности -->
+                    <div class="confidence-score">
+                        <div class="confidence-bar-container">
+                            <div class="confidence-bar" id="confidence-bar" style="width: 0%"></div>
+                        </div>
+                        <div class="confidence-text">
+                            <span class="confidence-label">Уверенность модели:</span>
+                            <span class="confidence-value" id="confidence-value">-</span>
+                        </div>
+                        <p class="confidence-description" id="confidence-description">-</p>
+                    </div>
+
                     <div class="confidence-interval">
                         <p>Доверительный интервал:
                             <span id="confidence-lower">-</span> -
                             <span id="confidence-upper">-</span>
                         </p>
                     </div>
+
                     <div class="interpretation">
                         <p id="interpretation-text">-</p>
                     </div>
